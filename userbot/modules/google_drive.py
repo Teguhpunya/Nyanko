@@ -1,4 +1,5 @@
 # Copyright (C) 2020 Adek Maulana
+# Edited by Teguhpunya
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This program is free software: you can redistribute it and/or modify
@@ -60,6 +61,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive.metadata"
 ]
 REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
+
+botName = "Nyanko"
 # =========================================================== #
 #      STATIC CASE FOR G_DRIVE_FOLDER_ID IF VALUE IS URL      #
 # =========================================================== #
@@ -605,7 +608,7 @@ async def upload(gdrive, service, file_path, file_name, mimeType):
         pass
     body = {
         "name": file_name,
-        "description": "Uploaded from Telegram using ProjectBish userbot.",
+        "description": f"Uploaded from Telegram using {botName} userbot.",
         "mimeType": mimeType,
     }
     try:
