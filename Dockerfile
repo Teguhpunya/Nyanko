@@ -65,9 +65,9 @@ RUN python3 -m ensurepip \
 #
 # Clone repo and prepare working directory
 #
-RUN git clone -b master https://github.com/adekmaulana/ProjectBish /home/projectbish/
-RUN mkdir /home/projectbish/bin/
-WORKDIR /home/projectbish/
+RUN git clone -b master https://github.com/Teguhpunya/Nyanko /home/Nyanko/
+RUN mkdir /home/Nyanko/bin/
+WORKDIR /home/Nyanko/
 
 #
 # Install requirements
