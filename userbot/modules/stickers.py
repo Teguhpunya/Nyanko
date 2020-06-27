@@ -239,6 +239,119 @@ async def kang(args):
             parse_mode='md')
 
 
+@register(outgoing=True, pattern="^.kas")
+async def kas(args):
+    """ For .kas command, kangs stickers to existed pack. """
+    user = await bot.get_me()
+    if not user.username:
+        user.username = user.first_name
+    message = await args.get_reply_message()
+    photo = None
+    emojibypass = False
+    is_anim = False
+    emoji = None
+
+    if message and message.media:
+        if isinstance(message.media, MessageMediaPhoto):
+            await args.edit(f"`{random.choice(KANGING_STR)}`")
+            photo = io.BytesIO()
+            photo = await bot.download_media(message.photo, photo)
+        elif "image" in message.media.document.mime_type.split('/'):
+            await args.edit(f"`{random.choice(KANGING_STR)}`")
+            photo = io.BytesIO()
+            await bot.download_file(message.media.document, photo)
+            if (DocumentAttributeFilename(file_name='sticker.webp') in
+                    message.media.document.attributes):
+                emoji = message.media.document.attributes[1].alt
+                if emoji != '':
+                    emojibypass = True
+        elif "tgsticker" in message.media.document.mime_type:
+            await args.edit(f"`{random.choice(KANGING_STR)}`")
+            await bot.download_file(message.media.document,
+                                    'AnimatedSticker.tgs')
+
+            attributes = message.media.document.attributes
+            for attribute in attributes:
+                if isinstance(attribute, DocumentAttributeSticker):
+                    emoji = attribute.alt
+
+            emojibypass = True
+            is_anim = True
+            photo = 1
+        else:
+            return await args.edit("`Unsupported File!`")
+    else:
+        return await args.edit("`I can't kang that...`")
+
+    if photo:
+        splat = args.text.split()
+        if not emojibypass:
+            emoji = "🤔"
+        pack = "No"
+        if len(splat) == 3:
+            pack = splat[2]  # User sent both
+            emoji = splat[1]
+        elif len(splat) == 2:
+            pack = splat[1]
+        else:
+            return args.edit("I can't do that. "
+             "Use `.kangas <emoji> <pack name>`, or "
+             "`.kangas <pack name>`",
+            parse_mode='md')
+        packname = f"{pack}"
+        file = io.BytesIO()
+
+        if not is_anim:
+            image = await resize_photo(photo)
+            file.name = "sticker.png"
+            image.save(file, "PNG")
+
+        bot.conversation('Stickers').send_message('/cancel')
+
+        response = urllib.request.urlopen(
+            urllib.request.Request(f'http://t.me/addstickers/{packname}'))
+        htmlstr = response.read().decode("utf8").split('\n')
+
+        if "Invalid pack selected." not in htmlstr:
+            async with bot.conversation('Stickers') as conv:
+                await conv.send_message('/addsticker')
+                await conv.get_response()
+                # Ensure user doesn't get spamming notifications
+                await bot.send_read_acknowledge(conv.chat_id)
+                await conv.send_message(packname)
+                await conv.get_response()
+                if is_anim:
+                    await conv.send_file('AnimatedSticker.tgs')
+                    remove('AnimatedSticker.tgs')
+                else:
+                    file.seek(0)
+                    await conv.send_file(file, force_document=True)
+                rsp = await conv.get_response()
+                if "Sorry, the file type is invalid." in rsp.text:
+                    return await args.edit(
+                        "`Failed to add sticker, use` @Stickers `bot to add the sticker manually.`"
+                    )
+                await conv.send_message(emoji)
+                # Ensure user doesn't get spamming notifications
+                await bot.send_read_acknowledge(conv.chat_id)
+                await conv.get_response()
+                await conv.send_message('/done')
+                await conv.get_response()
+                # Ensure user doesn't get spamming notifications
+                await bot.send_read_acknowledge(conv.chat_id)
+        else:
+            await conv.send_message('/cancel')
+            await bot.send_read_acknowledge(conv.chat_id)
+            return await args.edit(
+                f"\nYou don't have {packname}. Canceled.)",
+                parse_mode='md')
+
+        await args.edit(
+            "`Sticker kanged successfully!`"
+            f"\nPack can be found [here](t.me/addstickers/{packname})",
+            parse_mode='md')
+
+
 async def resize_photo(photo):
     """ Resize the given photo to 512x512 """
     image = Image.open(photo)
@@ -343,6 +456,12 @@ CMD_HELP.update({
     "\n\n>`.kang (emoji['s]]?` [number]?"
     "\nUsage: Kang's the sticker/image to the specified pack but uses 🤔 as emoji "
     "or choose the emoji you want to."
+    "\n\n>`.kas <packname>`"
+    "\nUsage: Reply .kas to a sticker or an image to kang it to your existed named pack"
+    "\nwith included emoji or 🤔 as default"
+    "\n>`.kas <emoji> <packname>`"
+    "\nUsage: Reply .kas to a sticker or an image to kang it to your existed named pack"
+    "\nwith specified emoji"
     "\n\n>`.stkrinfo`"
     "\nUsage: Gets info about the sticker pack."
     "\n\n>`.getsticker`"
